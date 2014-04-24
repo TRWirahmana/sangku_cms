@@ -41,7 +41,10 @@ class Cms_Model_Crud
                 $this->_tableName = $tableName;
             }
         }
-        $this->_tableInfo = $this->table()->info();
+        $this->_tableInfo = $this->table();
+
+        $this->_tableInfo = $this->info();
+
         $this->_primary = isset($this->_primary) ? $this->_primary : current($this->_tableInfo['primary']);
         if (isset($id)) {
             // coba cari
@@ -65,12 +68,38 @@ class Cms_Model_Crud
     public function table()
     {
         if (!$this->_table) {
-            $this->_table = DB::table(array(
-                'schema' => $this->_tableSchema,
-                'name' => $this->_tableName,
-            ));
+            $this->_table = DB::table($this->_tableName);
         }
         return $this->_table;
+    }
+
+    public function info(){
+        $link = mysql_connect('localhost', 'root', '');
+        if (!$link) {
+            die('Not connected : ' . mysql_error());
+        }
+
+// make foo the current db
+        $db_selected = mysql_select_db('hukor', $link);
+        if (!$db_selected) {
+            die ('Can\'t use foo : ' . mysql_error());
+        }
+        $result = mysql_query("SHOW COLUMNS FROM ". $this->_tableName." ");
+
+        if (!$result) {
+            echo 'Could not run query: ' . mysql_error();
+            exit;
+        }
+        if (mysql_num_rows($result) > 0) {
+            while ($row = mysql_fetch_assoc($result)) {
+                echo "<pre>";
+                var_dump($row);exit;
+                echo "</pre>";
+                $info = $row;
+            }
+        }
+
+        return $info;
     }
 
     /**

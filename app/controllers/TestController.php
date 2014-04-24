@@ -17,9 +17,8 @@ class TestController extends App_CrudController
     public function add()
     {
 
-
         $this->_add(null, 'index', 'Cms_Berita');
 
-        return View::make('hello');
+        return View::make('test.test');
     }
 }
