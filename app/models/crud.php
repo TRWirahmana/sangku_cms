@@ -28,6 +28,18 @@ class Cms_Model_Crud
     protected $_foreignKeys = array(); // kolom yg masuk di sini akan dibuatkan element select
     protected $_exceptForm = array(); // kolom yg masuk di sini akan dibuatkan element form sendiri
 
+    public function connection(){
+        $link = mysql_connect('localhost', 'root', '');
+        if (!$link) {
+            die('Not connected : ' . mysql_error());
+        }
+
+        // seleksi database
+        $db_selected = mysql_select_db('hukor', $link);
+        if (!$db_selected) {
+            die ('Can\'t use foo : ' . mysql_error());
+        }
+    }
 
     public function __construct($tableName = null, $id = null)
     {
@@ -74,17 +86,15 @@ class Cms_Model_Crud
     }
 
     public function info(){
-        $link = mysql_connect('localhost', 'root', '');
-        if (!$link) {
-            die('Not connected : ' . mysql_error());
-        }
 
-// make foo the current db
-        $db_selected = mysql_select_db('hukor', $link);
-        if (!$db_selected) {
-            die ('Can\'t use foo : ' . mysql_error());
-        }
+        $this->connection();
+
         $result = mysql_query("SHOW COLUMNS FROM ". $this->_tableName." ");
+
+//        $result->execute();
+//        $rows = $result->result_metadata();
+//
+//        var_dump($rows->fetch_fields());
 
         if (!$result) {
             echo 'Could not run query: ' . mysql_error();
@@ -92,12 +102,14 @@ class Cms_Model_Crud
         }
         if (mysql_num_rows($result) > 0) {
             while ($row = mysql_fetch_assoc($result)) {
-                echo "<pre>";
-                var_dump($row);exit;
-                echo "</pre>";
+
                 $info = $row;
             }
         }
+
+        echo "<pre>";
+        var_dump($info);exit;
+        echo "</pre>";
 
         return $info;
     }
