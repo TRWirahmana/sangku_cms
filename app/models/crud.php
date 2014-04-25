@@ -101,17 +101,10 @@ class Cms_Model_Crud
             exit;
         }
         if (mysql_num_rows($result) > 0) {
-            while ($row = mysql_fetch_assoc($result)) {
-
-                $info = $row;
+            while ($row = mysql_fetch_array($result)) {
+                return $row;
             }
         }
-
-        echo "<pre>";
-        var_dump($info);exit;
-        echo "</pre>";
-
-        return $info;
     }
 
     /**
@@ -122,14 +115,17 @@ class Cms_Model_Crud
     public function form()
     {
         $f = new Form();
-        $f->setMethod('post')
-            ->setDecorators(array(
-                array('ViewScript', array('viewScript' => 'partials/form-crud.phtml'))
-            ));
+//        $f->setMethod('post')
+//            ->setDecorators(array(
+//                array('ViewScript', array('viewScript' => 'partials/form-crud.phtml'))
+//            ));
         // Generate form element berdasarkan $this->_tableInfo
-        foreach ($this->_tableInfo['metadata'] as $column => $colInfo) {
+
+        $p = array($this->_tableInfo);
+        foreach ($p as $column => $colInfo) {
+//            var_dump($colInfo);exit;
             // primary key tidak dibuatkan form element
-            if (!$colInfo['PRIMARY'] && !in_array($column, $this->_ignoreCols)) {
+            if (!$colInfo['Key'] && !in_array($column, $this->_ignoreCols)) {
 
                 //edited by irfan.muslim@sangkuriang.co.id
                 //pengecualian element form
