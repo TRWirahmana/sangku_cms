@@ -47,29 +47,8 @@ class App_CrudController extends BaseController
     {
         $crud = new $crudClass($tableName);
         $form = $crud->form();
-        if ($this->_request->isPost()) {
-            if ($form->isValid($this->_request->getPost())) {
 
-                //edited by : tajhul.faijin@sangkuriang.co.id
-                if( isset($_FILES) && !is_null($dest) ){
-                    $upload = new Zend_File_Transfer_Adapter_Http();
-                    $upload->setDestination($dest);
-                    $upload->receive();
-                }
-                //------------------
-
-                $crud->setFromForm($form);
-                $crud->save();
-                $this->_helper->flashMessenger->addMessage('Data Tersimpan');
-
-                //jika listAction tidak = string kosong, redirect!
-                if($listAction != ''){
-                    $this->_redirector->gotoSimple($listAction, null, null, $options);
-                }
-            }
-
-        }
-        $this->view->form = $form;
+        return $form;
 
     }
 }

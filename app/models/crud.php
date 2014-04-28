@@ -44,6 +44,9 @@ class Cms_Model_Crud
     public function __construct($tableName = null, $id = null)
     {
 
+        //memanggil koneksi database
+        $this->connection();
+
         if ($tableName) {
             if (strpos($tableName, '.') !== false) {
                 preg_match('/^(.*)\.(.*)$/', $tableName, $m);
@@ -57,7 +60,7 @@ class Cms_Model_Crud
 
         $this->_tableInfo = $this->info();
 
-        $this->_primary = isset($this->_primary) ? $this->_primary : current($this->_tableInfo['primary']);
+        $this->_primary = isset($this->_primary) ? $this->_primary : current($this->_tableInfo['Key']);
         if (isset($id)) {
             // coba cari
             $table = $this->table();
@@ -80,6 +83,7 @@ class Cms_Model_Crud
     public function table()
     {
         if (!$this->_table) {
+
             $this->_table = DB::table($this->_tableName);
         }
         return $this->_table;
@@ -87,14 +91,7 @@ class Cms_Model_Crud
 
     public function info(){
 
-        $this->connection();
-
         $result = mysql_query("SHOW COLUMNS FROM ". $this->_tableName." ");
-
-//        $result->execute();
-//        $rows = $result->result_metadata();
-//
-//        var_dump($rows->fetch_fields());
 
         if (!$result) {
             echo 'Could not run query: ' . mysql_error();
@@ -114,7 +111,7 @@ class Cms_Model_Crud
      */
     public function form()
     {
-        $f = new Form();
+//        $f = new Form();
 //        $f->setMethod('post')
 //            ->setDecorators(array(
 //                array('ViewScript', array('viewScript' => 'partials/form-crud.phtml'))
@@ -122,111 +119,39 @@ class Cms_Model_Crud
         // Generate form element berdasarkan $this->_tableInfo
 
         $p = array($this->_tableInfo);
+
         foreach ($p as $column => $colInfo) {
 //            var_dump($colInfo);exit;
-            // primary key tidak dibuatkan form element
-            if (!$colInfo['Key'] && !in_array($column, $this->_ignoreCols)) {
-
-                //edited by irfan.muslim@sangkuriang.co.id
-                //pengecualian element form
-                if (isset($this->_exceptForm[$column]))
-                {
-                    $setting = $this->_exceptForm[$column];
-                    $tampil = (isset($setting['tampil'])) ? $setting['tampil'] : true;
-
-                    //salah satunya option-nya: tampil atau tidak?
-                    if ($tampil){
-
-                        $f->addElement($setting['formtype'],$column, array(
-                                'label' => (isset($setting['label'])) ? $setting['label'] : $this->fieldToName($column),
-                                'required' => (isset($setting['required'])) ? $setting['required'] : !$colInfo['NULLABLE'],
-                                'multiple' => $setting['ismultiple'],
-                                'multiOptions' => $setting['options'],
-                                'validators' => $setting['validator'],
-                                'class'	=> $setting['class'],
-                                'filters' => $setting['filter'],
-                            )
-                        );
-                    }
-                }
-                //end edited
-
-                // langsung mengenali foreign key dan membuat element select
-                elseif (isset($this->_foreignKeys[$column])) {
-                    $setting = $this->_foreignKeys[$column];
-                    $f->addElement('select', $column, array(
-                        'label' => (isset($setting['label'])) ? $setting['label'] : $this->fieldToName($column),
-                        'required' => !$colInfo['NULLABLE'],
-                        'multiple' => false,
-                        'multiOptions' => $this->_generateOptions($setting),
-                        'validators' => array(
-                            array('Db_RecordExists', false, array(
-                                'schema' => $setting['schema'],
-                                'table' => $setting['table'],
-                                'field' => $setting['field'],
-                            )),
-                        ),
-                    ));
-                } else switch ($colInfo['DATA_TYPE']) {
+                switch ($colInfo['Type']) {
                     case 'int4':
                     case 'int8':
-                        $f->addElement('text', $column, array(
-                            'label' => $this->fieldToName($column),
-                            'required' => !$colInfo['NULLABLE'],
-                            'filters' => array('Int'),
-                            'validators' => array(
-                            ),
-                        ));
+                    case 'int':
+                        $label_name = $this->fieldToName($colInfo['Field']);
+                        $f = $this->type_text($label_name);
                         break;
                     case 'float4':
                     case 'float8':
-                        $f->addElement('text', $column, array(
-                            'label' => $this->fieldToName($column),
-                            'required' => !$colInfo['NULLABLE'],
-                            'filters' => array('StringTrim'),
-                            'validators' => array(
-                                array('Float'),
-                            ),
-                        ));
-                        break;
-                    case 'bool':
-                        $f->addElement('checkbox', $column, array(
-                            'label' => $this->fieldToName($column),
-                            'required' => !$colInfo['NULLABLE'],
-                        ));
+                        $label_name = $this->fieldToName($colInfo['Field']);
+                        $f = $this->type_text($label_name);
                         break;
                     case 'varchar':
-                        $f->addElement('text', $column, array(
-                            'label' => $this->fieldToName($column),
-                            'required' => !$colInfo['NULLABLE'],
-                            'filters' => array('StringTrim'),
-                            'validators' => array(
-                                array('StringLength', false, array('min'=>0, 'max'=>$colInfo['LENGTH'])),
-                            ),
-                        ));
+                        $label_name = $this->fieldToName($colInfo['Field']);
+                        $f = $this->type_text($label_name);
                         break;
                     case 'text':
-                        $f->addElement('textarea', $column, array(
-                            'label' => $this->fieldToName($column),
-                            'required' => !$colInfo['NULLABLE'],
-                            'filters' => array('StringTrim'),
-                        ));
+                        $label_name = $this->fieldToName($colInfo['Field']);
+                        $f = $this->type_textarea($label_name);
                         break;
                     default:
-                        $f->addElement('text', $column, array(
-                            'label' => $this->fieldToName($column),
-                            'required' => !$colInfo['NULLABLE'],
-                            'filters' => array('StringTrim'),
-                        ));
+                        $label_name = $this->fieldToName($colInfo['Field']);
+                        $f = $this->type_text($label_name);
                         break;
                 }
-            }
         }
+
         // terakhir ditambahkan tombol submit
-        $f->addElement('submit', 'submit', array(
-            'ignore' => true,
-            'label'  => 'Simpan',
-        ));
+//        $f = $this->submit_button("submit");
+
         return $f;
     }
 
@@ -439,4 +364,26 @@ class Cms_Model_Crud
 
         return $result;
     }
+
+    public function type_text($name){
+
+        $input = "<label>". $name ."</label> : <input type='text' name=". $name .">";
+
+        return $input;
+    }
+
+    public function type_textarea($name){
+
+        $input = "<textarea name=". $name ."></textarea>";
+
+        return $input;
+    }
+
+    public function submit_button($name){
+
+        $input = "<input type='submit' value=". $name .">";
+
+        return $input;
+    }
+
 }
