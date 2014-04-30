@@ -47,25 +47,33 @@ class Cms_Model_Crud
         //memanggil koneksi database
         $this->connection();
 
-        if ($tableName) {
-            if (strpos($tableName, '.') !== false) {
-                preg_match('/^(.*)\.(.*)$/', $tableName, $m);
-                $this->_tableSchema = $m[1];
-                $this->_tableName = $m[2];
-            } else {
-                $this->_tableName = $tableName;
-            }
-        }
-        $this->_tableInfo = $this->table();
+//        if ($tableName) {
+//            if (strpos($tableName, '.') !== false) {
+//                preg_match('/^(.*)\.(.*)$/', $tableName, $m);
+//                $this->_tableSchema = $m[1];
+//                $this->_tableName = $m[2];
+//            } else {
+//                $this->_tableName = $tableName;
+//            }
+//        }
+
+//        $this->_tableInfo = $this->table();
 
         $this->_tableInfo = $this->info();
 
-        $this->_primary = isset($this->_primary) ? $this->_primary : current($this->_tableInfo['Key']);
+//        $meta = array($this->_tableInfo);
+//
+//        var_dump($e);exit;
+
+        $this->_primary = isset($this->_primary) ? $this->_primary : current($this->_tableInfo->primary_key);
+
         if (isset($id)) {
             // coba cari
             $table = $this->table();
             $rowset = $table->find($id);
+
             if (count($rowset) > 0) {
+
                 $this->_id = $id;
                 $this->setFromRow($rowset->current());
             } else {
@@ -80,28 +88,51 @@ class Cms_Model_Crud
      * Mengembalikan object dbtable utama
      * @return Zend_Db_Table
      */
-    public function table()
-    {
-        if (!$this->_table) {
-
-            $this->_table = DB::table($this->_tableName);
-        }
-        return $this->_table;
-    }
+//    public function table()
+//    {
+//        if (!$this->_table) {
+//            $this->_table = DB::table($this->_tableName);
+//        }
+//        return $this->_table;
+//    }
 
     public function info(){
 
-        $result = mysql_query("SHOW COLUMNS FROM ". $this->_tableName." ");
+        $result = mysql_query("SELECT * FROM ". $this->_tableName." ");
 
         if (!$result) {
             echo 'Could not run query: ' . mysql_error();
             exit;
         }
-        if (mysql_num_rows($result) > 0) {
-            while ($row = mysql_fetch_array($result)) {
-                return $row;
+
+        $i = 0;
+        while ($i < mysql_num_fields($result)) {
+//            echo "Information for column $i:<br />\n";
+            $meta = mysql_fetch_field($result, $i);
+            if (!$meta) {
+                echo "No information available<br />\n";
             }
+
+            return $meta;
+            $i++;
         }
+
+//        mysql_free_result($result);
+//        while ($i < mysql_num_fields($result)) {
+//            $meta = mysql_fetch_field($result, $i);
+//            if (!$meta) {
+//                echo "No information available<br />\n";
+//            }
+////            var_dump($meta);exit;
+////            return $meta;
+//
+//            $a = array($meta);
+//
+//            $i++;
+//        }
+//
+//
+//        var_dump($result);exit;
     }
 
     /**
@@ -121,38 +152,43 @@ class Cms_Model_Crud
         $p = array($this->_tableInfo);
 
         foreach ($p as $column => $colInfo) {
-//            var_dump($colInfo);exit;
-                switch ($colInfo['Type']) {
+            var_dump($colInfo);exit;
+                switch ($colInfo->type) {
                     case 'int4':
                     case 'int8':
                     case 'int':
-                        $label_name = $this->fieldToName($colInfo['Field']);
+//                    echo "integer";exit;
+                        $label_name = $this->fieldToName($colInfo->name);
                         $f = $this->type_text($label_name);
                         break;
                     case 'float4':
                     case 'float8':
-                        $label_name = $this->fieldToName($colInfo['Field']);
+                        $label_name = $this->fieldToName($colInfo->name);
                         $f = $this->type_text($label_name);
                         break;
                     case 'varchar':
-                        $label_name = $this->fieldToName($colInfo['Field']);
+                    case 'blob':
+//                        echo "varchar";exit;
+                        $label_name = $this->fieldToName($colInfo->name);
                         $f = $this->type_text($label_name);
                         break;
                     case 'text':
-                        $label_name = $this->fieldToName($colInfo['Field']);
+                        $label_name = $this->fieldToName($colInfo->name);
                         $f = $this->type_textarea($label_name);
                         break;
                     default:
-                        $label_name = $this->fieldToName($colInfo['Field']);
+//                        echo 'default';exit;
+                        $label_name = $this->fieldToName($colInfo->name);
                         $f = $this->type_text($label_name);
                         break;
                 }
+            return $f;
         }
 
         // terakhir ditambahkan tombol submit
 //        $f = $this->submit_button("submit");
 
-        return $f;
+
     }
 
     /**
